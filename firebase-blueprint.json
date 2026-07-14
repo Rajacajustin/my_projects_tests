@@ -1,0 +1,76 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile database representation.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The Firebase Auth user ID." },
+        "email": { "type": "string", "description": "User email address." },
+        "displayName": { "type": "string", "description": "Display name of the user." },
+        "photoURL": { "type": "string", "description": "URL of the user profile picture." },
+        "bio": { "type": "string", "maxLength": 140, "description": "Short bio string." },
+        "uniqueID": { "type": "string", "pattern": "^user_[a-zA-Z0-9_\\-]+$", "description": "Generated mathematically unique alphanumeric user ID." },
+        "status": { "type": "string", "enum": ["online", "offline"], "description": "Current status." },
+        "lastSeen": { "type": "string", "format": "date-time", "description": "Last seen timestamp." }
+      },
+      "required": ["uid", "email", "uniqueID", "status"]
+    },
+    "FriendRequest": {
+      "title": "FriendRequest",
+      "description": "Friend requests between users.",
+      "type": "object",
+      "properties": {
+        "requestId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "receiverId": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "accepted", "declined"] },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["requestId", "senderId", "receiverId", "status", "timestamp"]
+    },
+    "Chat": {
+      "title": "Chat",
+      "description": "Chat details and participants list.",
+      "type": "object",
+      "properties": {
+        "chatId": { "type": "string" },
+        "participants": { "type": "array", "description": "Array of participant user IDs." },
+        "lastMessage": { "type": "string" },
+        "lastMessageTimestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["chatId", "participants"]
+    },
+    "Message": {
+      "title": "Message",
+      "description": "Message structure in subcollection under chats.",
+      "type": "object",
+      "properties": {
+        "messageId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "text": { "type": "string", "maxLength": 5000 },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["sent", "delivered", "seen"] }
+      },
+      "required": ["messageId", "senderId", "text", "timestamp", "status"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Users"
+    },
+    "/friendRequests/{requestId}": {
+      "schema": "FriendRequest",
+      "description": "Friend Requests"
+    },
+    "/chats/{chatId}": {
+      "schema": "Chat",
+      "description": "Chats"
+    },
+    "/chats/{chatId}/messages/{messageId}": {
+      "schema": "Message",
+      "description": "Chat messages"
+    }
+  }
+}

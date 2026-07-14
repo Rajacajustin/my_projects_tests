@@ -1,0 +1,72 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+/* Custom theme CSS variables for "Sleek Interface" */
+:root {
+  --bg-primary: #121212;
+  --bg-secondary: #1c1c1e;
+  --bg-chat: #0b141a;
+  --text-main: #f5f5f7;
+  --text-muted: rgba(245, 245, 247, 0.6);
+  --accent: #00a884;
+  --bubble-sent: #005c4b;
+  --bubble-received: #202c33;
+  --border: rgba(255, 255, 255, 0.1);
+  --accent-hover: #008f70;
+}
+
+/* Base custom styles to enforce global compliance with the Sleek aesthetic */
+* {
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+}
+input, textarea {
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-main);
+  font-family: var(--font-sans);
+}
+
+/* Subtle dots pattern for the chat area as specified in the Sleek Interface design */
+.sleek-chat-pattern {
+  background-color: var(--bg-chat) !important;
+  position: relative;
+}
+.sleek-chat-pattern::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.035) 1.2px, transparent 0);
+  background-size: 24px 24px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Webkit scrollbar adjustments for premium touch */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}

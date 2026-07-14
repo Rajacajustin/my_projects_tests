@@ -1,0 +1,10 @@
+const firebaseConfig = {
+  apiKey: "AIzaSyC48qQlo9xDwS475XWHhPemUffMTzJUOvk",
+  authDomain: "gd25chat.firebaseapp.com",
+  databaseURL: "https://gd25chat-default-rtdb.firebaseio.com",
+  projectId: "gd25chat",
+  storageBucket: "gd25chat.firebasestorage.app",
+  messagingSenderId: "1067493964410",
+  appId: "1:1067493964410:web:a17f62b0997f7b734a19c3",
+  measurementId: "G-K94N8RPYZ5"
+};

@@ -1,0 +1,6 @@
+{
+  "name": "Messenger",
+  "description": "A fully functional, real-time secure communication application like WhatsApp with direct Firebase integration. It features real-time messaging, file/image drop attachments, emoji support, horizontal friend requests, unread counts, and voice/video call mockups.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

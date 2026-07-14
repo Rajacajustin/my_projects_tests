@@ -1,0 +1,133 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Phase 3: Primitive Definitions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isEmailVerified() {
+      return isSignedIn(); // Allow any authenticated user to create/update
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // User validation
+    function isValidUser(data) {
+      return data.uid == request.auth.uid
+        && data.email is string && data.email.size() > 0 && data.email.size() <= 256
+        && (data.displayName == null || (data.displayName is string && data.displayName.size() <= 100))
+        && (data.photoURL == null || (data.photoURL is string && data.photoURL.size() <= 1000000))
+        && (data.bio == null || (data.bio is string && data.bio.size() <= 140))
+        && data.uniqueID is string && data.uniqueID.size() >= 3 && data.uniqueID.size() <= 30 && data.uniqueID.matches('^[a-z0-9_]+$')
+        && data.status is string && (data.status == 'online' || data.status == 'offline')
+        && (data.lastSeen == null || data.lastSeen is string || data.lastSeen is timestamp);
+    }
+
+    // User matches
+    match /users/{userId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn(); // Allow listing/searching by uniqueID
+      allow create: if isEmailVerified() && userId == request.auth.uid && isValidUser(incoming());
+      allow update: if isEmailVerified() && userId == request.auth.uid && isValidUser(incoming())
+        && incoming().uid == existing().uid
+        && incoming().email == existing().email; // Allow changing uniqueID (making it editable)
+    }
+
+    // FriendRequest validation
+    function isValidFriendRequest(data) {
+      return data.requestId is string && data.requestId.size() <= 128
+        && data.senderId == request.auth.uid
+        && data.receiverId is string && data.receiverId.size() <= 128
+        && data.status is string && (data.status == 'pending' || data.status == 'accepted' || data.status == 'declined')
+        && (data.timestamp is string || data.timestamp is timestamp);
+    }
+
+    // FriendRequest matches
+    match /friendRequests/{requestId} {
+      allow get: if isSignedIn() && (existing().senderId == request.auth.uid || existing().receiverId == request.auth.uid);
+      allow list: if isSignedIn() && (resource.data.senderId == request.auth.uid || resource.data.receiverId == request.auth.uid);
+      allow create: if isEmailVerified() && isValidFriendRequest(incoming()) && incoming().requestId == requestId;
+      allow update: if isEmailVerified()
+        && (
+          // Only the receiver can update status to accepted or declined
+          existing().receiverId == request.auth.uid
+          && incoming().status is string && (incoming().status == 'accepted' || incoming().status == 'declined')
+          && incoming().diff(existing()).affectedKeys().hasOnly(['status'])
+        );
+      allow delete: if false;
+    }
+
+    // Chat validation
+    function isValidChat(data) {
+      return data.chatId is string && data.chatId.size() <= 128
+        && data.participants is list && (data.participants.size() == 1 || data.participants.size() == 2)
+        && data.participants[0] is string
+        && (data.participants.size() == 1 || data.participants[1] is string)
+        && (request.auth.uid in data.participants)
+        && (data.lastMessage == null || (data.lastMessage is string && data.lastMessage.size() <= 5000))
+        && (data.lastMessageTimestamp == null || data.lastMessageTimestamp is string || data.lastMessageTimestamp is timestamp);
+    }
+
+    // Chat matches
+    match /chats/{chatId} {
+      allow get: if isSignedIn() && (request.auth.uid in existing().participants);
+      allow list: if isSignedIn() && (request.auth.uid in resource.data.participants);
+      allow create: if isEmailVerified() && isValidChat(incoming()) && incoming().chatId == chatId;
+      allow update: if isEmailVerified() && (request.auth.uid in existing().participants)
+        && (
+          // Update lastMessage and lastMessageTimestamp
+          incoming().diff(existing()).affectedKeys().hasAny(['lastMessage', 'lastMessageTimestamp'])
+          && incoming().diff(existing()).affectedKeys().hasOnly(['lastMessage', 'lastMessageTimestamp'])
+          && (incoming().lastMessage == null || incoming().lastMessage is string)
+          && (incoming().lastMessageTimestamp == null || incoming().lastMessageTimestamp is string || incoming().lastMessageTimestamp is timestamp)
+          // Participants list must remain the same
+          && incoming().participants == existing().participants
+        );
+      allow delete: if false;
+
+      // Message validation (nested under Chat)
+      function isValidMessage(data) {
+        return data.messageId is string && data.messageId.size() <= 128
+          && data.senderId == request.auth.uid
+          && data.text is string && data.text.size() <= 1000000
+          && (data.timestamp is string || data.timestamp is timestamp)
+          && data.status is string && (data.status == 'sent' || data.status == 'delivered' || data.status == 'seen');
+      }
+
+      match /messages/{messageId} {
+        // Must be participant of the parent chat to read or write messages
+        allow get: if isSignedIn() && (request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants);
+        allow list: if isSignedIn() && (request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants);
+        allow create: if isEmailVerified()
+          && (request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants)
+          && isValidMessage(incoming())
+          && incoming().messageId == messageId;
+        allow update: if isEmailVerified()
+          && (request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants)
+          && (
+            // A participant can update status of message (e.g. flip to delivered or seen)
+            incoming().diff(existing()).affectedKeys().hasOnly(['status'])
+            && incoming().status is string && (incoming().status == 'delivered' || incoming().status == 'seen')
+          );
+        allow delete: if false;
+      }
+    }
+  }
+}
